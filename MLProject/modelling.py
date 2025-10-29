@@ -12,7 +12,11 @@ import matplotlib.pyplot as plt
 mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns"))
 
 df = pd.read_csv("data_preprocessed/balanced.csv")
+
+df['clean_text'] = df['clean_text'].fillna('').astype(str)
+
 X, y = df['clean_text'], df['Sentiment']
+
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 grid = {
