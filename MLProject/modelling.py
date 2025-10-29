@@ -5,12 +5,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, f1_score, classification_report
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 import matplotlib.pyplot as plt
 
+# Gunakan file store lokal
 mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns"))
-mlflow.set_experiment("netflix_reviews_rf_tuned")
 
 df = pd.read_csv("data_preprocessed/balanced.csv")
 X, y = df['clean_text'], df['Sentiment']
@@ -22,7 +21,7 @@ grid = {
     "rf__max_depth": [None, 20]
 }
 
-def plot_and_log_cm(y_true, y_pred, run_id):
+def plot_and_log_cm(y_true, y_pred):
     cm = confusion_matrix(y_true, y_pred, labels=['Negative','Neutral','Positive'])
     fig = plt.figure(figsize=(4,4))
     plt.imshow(cm)
@@ -32,27 +31,26 @@ def plot_and_log_cm(y_true, y_pred, run_id):
     path = "cm.png"; fig.savefig(path); plt.close(fig)
     mlflow.log_artifact(path)
 
+# Jalankan langsung di dalam parent run (tidak perlu nested)
 for params in product(*grid.values()):
     param_dict = dict(zip(grid.keys(), params))
     pipe = Pipeline([
         ("tfidf", TfidfVectorizer()),
         ("rf", RandomForestClassifier(random_state=42))
     ])
-    # set params
     pipe.set_params(**{
         "tfidf__max_features": param_dict["tfidf__max_features"],
         "rf__n_estimators": param_dict["rf__n_estimators"],
         "rf__max_depth": param_dict["rf__max_depth"]
     })
 
-    with mlflow.start_run(nested=True) as run:
+    with mlflow.start_run(nested=False):  # gunakan run biasa saja
         mlflow.log_params(param_dict)
         pipe.fit(X_train, y_train)
         y_pred = pipe.predict(X_test)
         acc = accuracy_score(y_test, y_pred)
         f1 = f1_score(y_test, y_pred, average='macro')
         mlflow.log_metrics({"accuracy": acc, "f1_macro": f1})
-        # simpan artefak tambahan
-        plot_and_log_cm(y_test, y_pred, run.info.run_id)
+        plot_and_log_cm(y_test, y_pred)
         mlflow.sklearn.log_model(pipe, artifact_path="model")
         print(param_dict, "=> acc:", acc, "f1:", f1)

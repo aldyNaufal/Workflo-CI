@@ -28,7 +28,9 @@ jobs:
           cat MLProject/MLproject
 
       - name: Run MLflow Project (local env)
-        run: mlflow run MLProject --env-manager=local -e main
+        run: |
+          mlflow run MLProject --env-manager=local -e main -A experiment_name=netflix_reviews_rf_tuned
+
 
       - name: Upload mlruns
         if: always()
