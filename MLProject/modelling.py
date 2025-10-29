@@ -9,7 +9,7 @@ from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 
-mlflow.set_tracking_uri("file:./mlruns")
+mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns"))
 mlflow.set_experiment("netflix_reviews_rf_tuned")
 
 df = pd.read_csv("data_preprocessed/balanced.csv")
@@ -45,7 +45,7 @@ for params in product(*grid.values()):
         "rf__max_depth": param_dict["rf__max_depth"]
     })
 
-    with mlflow.start_run() as run:
+    with mlflow.start_run(nested=True) as run:
         mlflow.log_params(param_dict)
         pipe.fit(X_train, y_train)
         y_pred = pipe.predict(X_test)
