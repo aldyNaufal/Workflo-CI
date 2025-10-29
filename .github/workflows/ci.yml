@@ -12,7 +12,7 @@ jobs:
           pip install mlflow==2.19.0
       - name: Run MLflow Project
         run: |
-          mlflow run MLProject
+          mlflow run MLProject -e main
       - name: Upload mlruns
         if: always()
         uses: actions/upload-artifact@v4
