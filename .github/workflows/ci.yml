@@ -1,18 +1,33 @@
 name: mlflow-project-ci
 on: [push]
+
 jobs:
   train:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-      - name: Install MLflow
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
         run: |
-          pip install mlflow==2.19.0
-      - name: Run MLflow Project
+          pip install -U pip
+          pip install mlflow==2.19.0 pandas scikit-learn
+
+      - name: Show tree
         run: |
-          mlflow run MLProject -e main
+          ls -lah
+          echo "----"
+          ls -lah MLProject
+          echo "----"
+          cat MLProject/MLproject
+
+      - name: Run MLflow Project (local env)
+        run: |
+          mlflow run MLProject --env-manager=local -e main
+
       - name: Upload mlruns
         if: always()
         uses: actions/upload-artifact@v4
@@ -20,20 +35,33 @@ jobs:
           name: mlruns
           path: mlruns/
 
-  # (Advance) Build & push Docker image
+  # (Advance) Build & push Docker image - opsional, aktifkan kalau sudah punya run id
   build-docker:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && always()
     needs: train
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install MLflow
+        run: pip install mlflow==2.19.0
+
       - uses: docker/setup-buildx-action@v3
+
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build MLflow Docker
+
+      - name: Build MLflow Docker (by run id)
         run: |
-          mlflow models build-docker -m "runs:/<ganti_dengan_run_id_terbaik>/model" -n ${{ secrets.DOCKERHUB_USERNAME }}/netflix-reviews:latest
+          mlflow models build-docker \
+            -m "runs:/RUN_ID_BEST/model" \
+            -n ${{ secrets.DOCKERHUB_USERNAME }}/netflix-reviews:latest
+
       - name: Push
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/netflix-reviews:latest

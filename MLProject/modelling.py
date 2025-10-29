@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 mlflow.set_tracking_uri("http://127.0.0.1:5000")
 mlflow.set_experiment("netflix_reviews_rf_tuned")
 
-df = pd.read_csv("namadataset_preprocessing/balanced.csv")
+df = pd.read_csv("data_preprocessed/balanced.csv")
 X, y = df['clean_text'], df['Sentiment']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
