@@ -1,0 +1,39 @@
+name: mlflow-project-ci
+on: [push]
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Install MLflow
+        run: |
+          pip install mlflow==2.19.0
+      - name: Run MLflow Project
+        run: |
+          mlflow run MLProject
+      - name: Upload mlruns
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlruns
+          path: mlruns/
+
+  # (Advance) Build & push Docker image
+  build-docker:
+    if: github.ref == 'refs/heads/main'
+    needs: train
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build MLflow Docker
+        run: |
+          mlflow models build-docker -m "runs:/<ganti_dengan_run_id_terbaik>/model" -n ${{ secrets.DOCKERHUB_USERNAME }}/netflix-reviews:latest
+      - name: Push
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/netflix-reviews:latest

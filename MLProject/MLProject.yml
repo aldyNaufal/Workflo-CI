@@ -1,0 +1,5 @@
+name: netflix-reviews-rf
+entry_points:
+  main:
+    parameters: {}
+    command: "python modelling.py"
